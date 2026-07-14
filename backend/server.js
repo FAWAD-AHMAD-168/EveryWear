@@ -13,6 +13,7 @@ import authRoutes from "./routes/authRoutes.js";
 import collectionRoutes from "./routes/collectionRoutes.js";
 import categoryRoutes from "./routes/categoryRoutes.js";
 import productRoutes from "./routes/productRoutes.js";
+import cartRoutes from "./routes/cartRoutes.js";
 
 dotenv.config();
 connectDB();
@@ -37,7 +38,7 @@ app.use("/uploads", express.static("uploads"));
 //
 app.get("/", (req, res) => {
   res.json({
-    message: "EveryWear - All in one clothing store !!",
+    message: "EveryWear - Redefining Men's Wearing Style !!",
   });
 });
 
@@ -45,6 +46,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/collections", collectionRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/products", productRoutes);
+app.use("/api/cart", cartRoutes);
 
 //  Global Error Handler
 app.use((err, req, res, next) => {
