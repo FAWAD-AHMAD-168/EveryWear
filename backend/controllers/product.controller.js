@@ -1,10 +1,10 @@
-import Products from "../models/productModel.js";
-import Collection from "../models/collectionModel.js";
-import Category from "../models/categoryModel.js";
+import Products from "../models/product.model.js";
+import Collection from "../models/collection.model.js";
+import Category from "../models/category.model.js";
 import mongoose from "mongoose";
-import apiError from "../utils/apiError.js";
-import asyncHandler from "../utils/asyncHandler.js";
-import apiResponse from "../utils/apiResponse.js";
+import apiError from "../utils/api-error.js";
+import asyncHandler from "../utils/async-handler.js";
+import apiResponse from "../utils/api-response.js";
 import {uploadOnCloudinary,deleteFromCloudinary} from "../services/cloudinary.js";
 import capitalizeName from "../utils/capitalizeName.js";
 

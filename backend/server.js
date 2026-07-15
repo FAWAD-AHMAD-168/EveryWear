@@ -9,11 +9,11 @@ import mongoSanitize from "@exortek/express-mongo-sanitize";
 import helmet from "helmet";
 
 import connectDB from "./config/db.js";
-import authRoutes from "./routes/authRoutes.js";
-import collectionRoutes from "./routes/collectionRoutes.js";
-import categoryRoutes from "./routes/categoryRoutes.js";
-import productRoutes from "./routes/productRoutes.js";
-import cartRoutes from "./routes/cartRoutes.js";
+import authRoutes from "./routes/auth.routes.js";
+import collectionRoutes from "./routes/collection.routes.js";
+import categoryRoutes from "./routes/category.routes.js";
+import productRoutes from "./routes/product.routes.js";
+import cartRoutes from "./routes/cart.routes.js";
 
 dotenv.config();
 connectDB();

@@ -1,7 +1,7 @@
-import User from "../models/userModel.js";
-import asyncHandler from "../utils/asyncHandler.js";
-import apiError from "../utils/apiError.js";
-import apiResponse from "../utils/apiResponse.js";
+import User from "../models/user.model.js";
+import asyncHandler from "../utils/async-handler.js";
+import apiError from "../utils/api-error.js";
+import apiResponse from "../utils/api-response.js";
 import sendEmail from "../services/resendEmail.js";
 import {
   generateAccessToken,

@@ -1,7 +1,7 @@
-import Collection from "../models/collectionModel.js";
-import asyncHandler from "../utils/asyncHandler.js";
-import apiResponse from "../utils/apiResponse.js";
-import apiError from "../utils/apiError.js";
+import Collection from "../models/collection.model.js";
+import asyncHandler from "../utils/async-handler.js";
+import apiResponse from "../utils/api-response.js";
+import apiError from "../utils/api-error.js";
 import capitalizeName from "../utils/capitalizeName.js";
 
 //  Create a new collection

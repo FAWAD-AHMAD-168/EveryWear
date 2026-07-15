@@ -1,9 +1,9 @@
-import Products from "../models/productModel.js";
-import User from "../models/userModel.js";
-import Cart from "../models/cartModel.js";
-import asyncHandler from "../utils/asyncHandler.js";
-import apiError from "../utils/apiError.js";
-import apiResponse from "../utils/apiResponse.js";
+import Products from "../models/product.model.js";
+import User from "../models/user.model.js";
+import Cart from "../models/cart.model.js";
+import asyncHandler from "../utils/async-handler.js";
+import apiError from "../utils/api-error.js";
+import apiResponse from "../utils/api-response.js";
 import mongoose from "mongoose";
 
 // ADD TO CART

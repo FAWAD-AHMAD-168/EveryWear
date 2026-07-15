@@ -1,7 +1,7 @@
 import express from "express";
 
-import {createCollection, editCollection, toggleCollectionStatus,deleteCollection ,getAllCollections} from "../controllers/collectionController.js";
-import { createCollectionValidator , editCollectionValidator } from "../validators/collectionValidator.js";
+import {createCollection, editCollection, toggleCollectionStatus,deleteCollection ,getAllCollections} from "../controllers/collection.controller.js";
+import { createCollectionValidator , editCollectionValidator } from "../validators/collection.validator.js";
 import isAuthenticated from "../middlewares/auth/isAuthenticated.js";
 import isAdmin from "../middlewares/auth/isAdmin.js";
 import validate from "../middlewares/validate.js";

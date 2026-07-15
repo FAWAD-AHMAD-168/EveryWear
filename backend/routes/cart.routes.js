@@ -2,7 +2,7 @@ import express from "express";
 const router = express.Router();
 
 
-import { addToCart,getCart,removeFromCart,clearCart , updateCartItem } from "../controllers/cartController.js";
+import { addToCart,getCart,removeFromCart,clearCart , updateCartItem } from "../controllers/cart.controller.js";
 import isAuthenticated from "../middlewares/auth/isAuthenticated.js";
 
 router.post("/add-to-cart/:productId", isAuthenticated, addToCart);

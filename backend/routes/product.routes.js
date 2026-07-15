@@ -7,8 +7,8 @@ import validate from "../middlewares/validate.js";
 
 
 import  {addProductToCollection ,addProductToCategoryOfCollection, editProduct
-   ,deleteProduct ,getAllProducts,getProductsByCategory,getProductsByCollection , AddProductImages , DeleteProductImage} from "../controllers/productController.js";
-import { createProductValidator ,editProductValidator  } from "../validators/productValidator.js";
+   ,deleteProduct ,getAllProducts,getProductsByCategory,getProductsByCollection , AddProductImages , DeleteProductImage} from "../controllers/product.controller.js";
+import { createProductValidator ,editProductValidator  } from "../validators/product.validator.js";
 
 
  router.get("/", getAllProducts);
