@@ -116,14 +116,14 @@ const orderSchema = new mongoose.Schema(
       paymentMethod: {
         type: String,
         required: true,
-        enum: ["Cash on Delivery", "Credit Card", "PayPal", "Bank Transfer"],
+        enum: ["cash_on_delivery", "credit_card", "paypal", "bank_transfer"],
       },
       paymentStatus: {
         type: String,
         required: true,
         enum: ["pending", "completed", "failed", "refunded"],
       },
-      paidAt: {
+      paymentDate: {
         type: Date,
       },
       transactionId: {
@@ -131,21 +131,40 @@ const orderSchema = new mongoose.Schema(
       },
     },
 
-    orderStatus: {
+    status: {
       type: String,
-      enum: [
-        "pending",
-        "confirmed",
-        "processing",
-        "packed",
-        "shipped",
-        "outForDelivery",
-        "delivered",
-        "cancelled",
-        "returned",
-        "refunded",
-      ],
+      enum: ["pending", "confirmed", "processing", "packed", "shipped", "outForDelivery", "delivered", "cancelled", "returned", "refunded"],
       default: "pending",
+    },
+
+    cancellationInfo: {
+      reason: {
+        type: String,
+        trim: true,
+        default: null,
+        enum: [
+          "Changed my mind",
+          "Ordered by mistake",
+          "Want to change the product or variant",
+          "Found a better price elsewhere",
+          "Delivery is taking too long",
+          "No longer needed",
+          "Other",
+        ],
+      },
+      description: {
+        type: String,
+        trim: true,
+        default: null,
+      },
+      cancelledBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+      cancellationDate: {
+        type: Date,
+        default: null,
+      },
     },
 
     notes: {
@@ -158,6 +177,13 @@ const orderSchema = new mongoose.Schema(
     timestamps: true,
   },
 );
+orderSchema.index({ user: 1 });
+orderSchema.index({ "paymentInfo.paymentStatus": 1 });
+orderSchema.index({ "paymentInfo.paymentMethod": 1 });
+
+orderSchema.index({ "shippingAddress.province": 1 });
+orderSchema.index({ "shippingAddress.city": 1 });
+orderSchema.index({ createdAt: -1 });
 
 const Order = mongoose.model("Order", orderSchema);
 export default Order;
