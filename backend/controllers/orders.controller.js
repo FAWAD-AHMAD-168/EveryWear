@@ -5,10 +5,14 @@ import Product from "../models/product.model.js";
 import User from "../models/user.model.js";
 import Cart from "../models/cart.model.js";
 import mongoose from "mongoose";
-import generateOrderId from "../utils/generate-order-id.js";
+import generateOrderId from "../utils/orders/generate-order-id.js";
+import getDateRange from "../utils/orders/get-date-range.js";
+import buildSortOptions from "../utils/orders/build-sort-options.js";
+import buildFilterOptions from "../utils/orders/build-order-filters.js";
 import Order from "../models/orders.model.js";
 
-//Create an Order
+// Create a new order from the authenticated user's cart and process inventory updates.
+
 const createOrder = AsyncHandler(async (req, res) => {
   const userId = req.user.id;
   const { shippingAddress } = req.body;
@@ -17,15 +21,7 @@ const createOrder = AsyncHandler(async (req, res) => {
 
   const { fullName, email, phone, country, province, city, streetAddress, postalCode } = shippingAddress;
 
-  if (!fullName || !email || !phone || !country || !province || !city || !streetAddress) {
-    throw new apiError(400, "All fields in shipping address are required");
-  }
-
-  const user = await User.findById(userId);
-  if (!user) {
-    throw new apiError(404, "User not found");
-  }
-  // // Store product snapshots so order details remain unchanged even if the product is updated later.
+  // Store product snapshots so order details remain unchanged even if the product is updated later.
   const confirmedOrderItems = [];
   const billingDetails = {
     subTotal: 0,
@@ -36,42 +32,64 @@ const createOrder = AsyncHandler(async (req, res) => {
   };
   const paymentInfo = {
     paymentMethod: "",
-    paymentStatus: "Pending",
+    paymentStatus: "pending",
     paidAt: null,
     transactionId: null,
   };
+  const cart = await Cart.findOne({ user: userId }).populate({
+    path: "items.product",
+    select: "name price discountedPrice sizes images",
+  });
+  if (!cart) {
+    throw new apiError(404, "Cart not found");
+  }
+
+  if (cart.items.length === 0) {
+    throw new apiError(400, "Cart is empty");
+  }
+
+  const orderItems = cart.items;
 
   const session = await mongoose.startSession();
   try {
     session.startTransaction();
-    console.log("transaction started ");
-    const cart = await Cart.findOne({ user: userId }).session(session).populate("items.product");
-    if (!cart) {
-      throw new apiError(404, "Cart not found");
-    }
-
-    if (cart.items.length === 0) {
-      throw new apiError(400, "Cart is empty");
-    }
-
-    const orderItems = cart.items;
 
     for (const item of orderItems) {
       const product = item.product;
+      if (!product) {
+        throw new apiError(404, "Product no longer exists!");
+      }
       const availableSizes = product.sizes;
       let sizeAvailable = false;
       let isStockAvailable = false;
 
-      for (const size of availableSizes) {
-        if (size.size === item.size) {
-          sizeAvailable = true;
-          if (size.stock >= item.quantity) {
-            isStockAvailable = true;
-            size.stock -= item.quantity;
-            await product.save({ session });
-          }
+      const sizeMap = new Map(availableSizes.map((size) => [size.size, size]));
+      const selectedSize = sizeMap.get(item.size);
+
+      if (selectedSize !== undefined && selectedSize !== null && selectedSize.stock >= item.quantity) {
+        sizeAvailable = true;
+        isStockAvailable = true;
+
+        const stockUpdate = await Product.updateOne(
+          {
+            _id: product._id,
+            sizes: {
+              $elemMatch: {
+                size: item.size,
+                stock: {
+                  $gte: item.quantity,
+                },
+              },
+            },
+          },
+          { $inc: { "sizes.$.stock": -item.quantity } },
+          { session },
+        );
+        if (stockUpdate.modifiedCount === 0) {
+          throw new apiError(400, `Size ${item.size} is not available in required quantity for ${product.name}`);
         }
       }
+
       if (sizeAvailable && isStockAvailable) {
         const orderItem = {
           product: product._id,
@@ -90,11 +108,6 @@ const createOrder = AsyncHandler(async (req, res) => {
         billingDetails.grandTotal += orderItem.discountedPriceAtPurchase * orderItem.quantity;
       }
 
-      if (paymentMethod === "cash_on_delivery") {
-        paymentInfo.paymentMethod = "cash_on_delivery";
-        paymentInfo.paymentStatus = "pending";
-      }
-
       if (!sizeAvailable) {
         throw new apiError(400, `Size ${item.size} is not available  for  ${product.name}`);
       }
@@ -102,12 +115,15 @@ const createOrder = AsyncHandler(async (req, res) => {
         throw new apiError(400, `Size ${item.size} is not  available in required quantity  for ${product.name} `);
       }
     }
+    if (paymentMethod === "cash_on_delivery") {
+      paymentInfo.paymentMethod = "cash_on_delivery";
+      paymentInfo.paymentStatus = "pending";
+    }
 
     billingDetails.grandTotal += billingDetails.shippingFees + billingDetails.tax;
     const orderId = generateOrderId();
-    console.log("Generated Order ID:", orderId);
 
-    //create order with all the details
+    // create order with all the details
     const order = new Order({
       user: userId,
       orderId: orderId,
@@ -120,16 +136,18 @@ const createOrder = AsyncHandler(async (req, res) => {
 
     await order.save({ session });
 
-    const cartToBeCleared = await Cart.findOneAndUpdate({ user: userId }, { $set: { items: [] } }, { session });
+    // clear the cart after order is placed
+
+    await Cart.findOneAndUpdate({ user: userId }, { $set: { items: [] } }, { session });
 
     await session.commitTransaction();
-    console.log("transaction committed ");
 
-    return res.status(200).json(new apiResponse(200, order, "Order placed successfully. You will receive an email confirmation shortly."));
+    return res
+      .status(200)
+      .json(new apiResponse(200, order, "Order placed successfully. You will receive an email confirmation shortly."));
   } catch (error) {
     if (session.inTransaction()) {
       await session.abortTransaction();
-      console.log("transaction aborted ");
     }
     throw error;
   } finally {
@@ -137,7 +155,7 @@ const createOrder = AsyncHandler(async (req, res) => {
   }
 });
 
-// Get all orders for a user
+// Retrieve all orders belonging to the authenticated user.
 const getUserOrders = AsyncHandler(async (req, res) => {
   const userId = req.user.id;
   const orders = await Order.find({ user: userId }).sort({ createdAt: -1 });
@@ -147,7 +165,7 @@ const getUserOrders = AsyncHandler(async (req, res) => {
   return res.status(200).json(new apiResponse(200, orders, "User orders fetched successfully"));
 });
 
-//Cancel the Order
+// Cancel an existing order and restore the reserved product stock.
 
 const cancelOrder = AsyncHandler(async (req, res) => {
   const userId = req.user.id;
@@ -190,13 +208,14 @@ const cancelOrder = AsyncHandler(async (req, res) => {
         throw new apiError(404, "Product  not found");
       }
       const availableSizes = product.sizes;
-      for (const size of availableSizes) {
-        if (size.size === item.size) {
-          size.stock += item.quantity;
-          await product.save({ session });
-          break;
-        }
+
+      const sizeMap = new Map(availableSizes.map((size) => [size.size, size]));
+      const selectedSize = sizeMap.get(item.size);
+      if (!selectedSize) {
+        throw new apiError(400, "Selected size is not available for this product");
       }
+      selectedSize.stock += item.quantity;
+      await product.save({ session });
     }
 
     order.status = "cancelled";
@@ -221,7 +240,7 @@ const cancelOrder = AsyncHandler(async (req, res) => {
   }
 });
 
-//get details of a single order
+// Retrieve complete details of a specific order for admin access.
 const getOrderDetailsForAdmin = AsyncHandler(async (req, res) => {
   const { orderId } = req.params;
 
@@ -235,6 +254,7 @@ const getOrderDetailsForAdmin = AsyncHandler(async (req, res) => {
 
   return res.status(200).json(new apiResponse(200, order, "Order details fetched successfully"));
 });
+// Retrieve complete details of a specific order for customer access.
 
 const getOrderDetailsForUser = AsyncHandler(async (req, res) => {
   const { orderId } = req.params;
@@ -251,7 +271,8 @@ const getOrderDetailsForUser = AsyncHandler(async (req, res) => {
 
   return res.status(200).json(new apiResponse(200, order, "Order details fetched successfully"));
 });
-//Update order status by admin
+
+// Update the status of an order and handle payment completion for Cash on Delivery orders.
 const updateOrderStatus = AsyncHandler(async (req, res) => {
   const { orderId } = req.params;
   const { status } = req.body;
@@ -278,9 +299,12 @@ const updateOrderStatus = AsyncHandler(async (req, res) => {
   return res.status(200).json(new apiResponse(200, order, "Order status updated successfully"));
 });
 
-//Get Recent Orders for Dashboard
+// Retrieve the latest orders for displaying on the admin dashboard.
 const getRecentOrdersForDashboard = AsyncHandler(async (req, res) => {
-  const recentOrders = await Order.find().sort({ createdAt: -1 }).limit(4).select("orderId status billingDetails createdAt");
+  const recentOrders = await Order.find()
+    .sort({ createdAt: -1 })
+    .limit(10)
+    .select("orderId status billingDetails createdAt");
 
   if (!recentOrders || recentOrders.length === 0) {
     throw new apiError(404, "No recent orders found");
@@ -289,7 +313,7 @@ const getRecentOrdersForDashboard = AsyncHandler(async (req, res) => {
   return res.status(200).json(new apiResponse(200, recentOrders, "Recent orders fetched successfully"));
 });
 
-//Order Statistics
+// Generate order analytics including revenue, monthly sales, and order status statistics.
 
 const getOrderStatistics = AsyncHandler(async (req, res) => {
   const [totalOrders, totalRevenue, monthlyRevenue, totalOrderStatsByStatus] = await Promise.all([
@@ -357,11 +381,91 @@ const getOrderStatistics = AsyncHandler(async (req, res) => {
   );
 });
 
+// Retrieve all orders for the admin with support for pagination, filtering, and sorting.
 
+const getAllOrdersForAdmin = AsyncHandler(async (req, res) => {
+  const {
+    page,
+    limit,
+    sortBy,
+    sortOrder,
+    status,
+    paymentStatus,
+    paymentMethod,
+    lowerPrice,
+    upperPrice,
+    minPrice,
+    maxPrice,
+    city,
+    province,
+    dateFilter,
+    startDate,
+    endDate,
+  } = req.query;
 
+  const pageNumber = parseInt(page) || 1;
+  const pageSize = parseInt(limit) || 20;
+  const skip = (pageNumber - 1) * pageSize;
 
+  //Date range validation and parsing
 
+  if (dateFilter === "custom" && (!startDate || !endDate)) {
+    throw new apiError(400, "Both startDate and endDate are required");
+  }
 
+  let parsedStartDate = null;
+  let parsedEndDate = null;
+  const dates = getDateRange(dateFilter, startDate, endDate);
+  parsedStartDate = dates.startDate;
+  parsedEndDate = dates.endDate;
+  if (parsedStartDate > parsedEndDate) {
+    throw new apiError(400, "startDate cannot be greater than endDate");
+  }
+
+  // Set up sorting options based on the query parameters
+
+  let sortOptions = {};
+  sortOptions = buildSortOptions(sortBy, sortOrder);
+
+  // Set up filtering options based on the query parameters
+  let filterOptions = buildFilterOptions(
+    status,
+    paymentStatus,
+    paymentMethod,
+    lowerPrice,
+    upperPrice,
+    minPrice,
+    maxPrice,
+    city,
+    province,
+    parsedStartDate,
+    parsedEndDate,
+  );
+
+  const [orders, totalOrders] = await Promise.all([
+    Order.find(filterOptions).sort(sortOptions).skip(skip).limit(pageSize).lean(),
+    Order.countDocuments(filterOptions),
+  ]);
+
+  if (!orders || orders.length === 0) {
+    return res
+      .status(200)
+      .json(new apiResponse(200, { orders: [], totalOrders: 0, totalNumberOfPages: 0 }, "No orders found"));
+  }
+  const totalPages = Math.ceil(totalOrders / pageSize);
+  const hasNextPage = pageNumber < totalPages;
+  const hasPrevPage = pageNumber > 1;
+
+  return res
+    .status(200)
+    .json(
+      new apiResponse(
+        200,
+        { totalPages, totalOrders, orders, hasNextPage, hasPrevPage, page: pageNumber, limit: pageSize },
+        "All orders fetched successfully",
+      ),
+    );
+});
 
 export {
   createOrder,
@@ -372,4 +476,5 @@ export {
   getOrderDetailsForUser,
   updateOrderStatus,
   getOrderStatistics,
+  getAllOrdersForAdmin,
 };

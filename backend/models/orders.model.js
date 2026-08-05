@@ -18,6 +18,7 @@ const orderSchema = new mongoose.Schema(
         product: {
           type: mongoose.Schema.Types.ObjectId,
           ref: "Products",
+          index: true,
           required: true,
         },
         productName: {
@@ -116,7 +117,7 @@ const orderSchema = new mongoose.Schema(
       paymentMethod: {
         type: String,
         required: true,
-        enum: ["cash_on_delivery", "credit_card", "paypal", "bank_transfer"],
+        enum: ["cash_on_delivery", "stripe", "paypal", "jazzcash", "bank_transfer"],
       },
       paymentStatus: {
         type: String,
@@ -133,7 +134,18 @@ const orderSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["pending", "confirmed", "processing", "packed", "shipped", "outForDelivery", "delivered", "cancelled", "returned", "refunded"],
+      enum: [
+        "pending",
+        "confirmed",
+        "processing",
+        "packed",
+        "shipped",
+        "outForDelivery",
+        "delivered",
+        "cancelled",
+        "returned",
+        "refunded",
+      ],
       default: "pending",
     },
 
