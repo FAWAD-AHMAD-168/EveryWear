@@ -36,6 +36,12 @@ const productSchema = new mongoose.Schema(
       min: 0,
     },
 
+    discount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
     images: [
       {
         imageUrl: {
@@ -72,11 +78,19 @@ const productSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-
-    discount: {
+    totalReviews: {
+      type: Number,
+      default: 0,
+    },
+    totalRatings: {
+      type: Number,
+      default: 0,
+    },
+    averageRating: {
       type: Number,
       default: 0,
       min: 0,
+      max: 5,
     },
   },
   { timestamps: true },
