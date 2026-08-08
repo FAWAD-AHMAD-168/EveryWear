@@ -5,6 +5,8 @@ import apiResponse from "../utils/api-response.js";
 import sendEmail from "../services/resendEmail.js";
 import { generateAccessToken, generateRefreshToken } from "../utils/generateTokens.js";
 import { uploadOnCloudinary, deleteFromCloudinary } from "../services/cloudinary.js";
+import verificationOtpEmail from "../email-templates/auth/verification-otp-email.js";
+import resendOtpEmail from "../email-templates/auth/resend-otp-email.js";
 
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
@@ -31,20 +33,9 @@ const registerUser = asyncHandler(async (req, res) => {
     verificationOtp: otp,
     verificationOtpExpiresAt: otpExpiresAt,
   });
+  const emailContent = verificationOtpEmail(otp);
 
-  const response = await sendEmail(
-    user.email,
-    "Email Verification - EveryWear",
-    `
-    <html>
-      <body>
-        <p>Your verification code is:</p>
-        <h2>${otp}</h2>
-        <p>This OTP will expire in 10 minutes.</p>
-      </body>
-    </html>
-  `,
-  );
+  await sendEmail(user.email, "Email Verification - EveryWear", emailContent);
 
   return res.status(201).json(
     new apiResponse(
@@ -99,19 +90,9 @@ const resendOTP = asyncHandler(async (req, res) => {
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
   const otpExpiresAt = Date.now() + 10 * 60 * 1000;
 
-  const response = await sendEmail(
-    user.email,
-    "Resend Verification Code - EveryWear",
-    `
-    <html>
-      <body>
-        <p>Your new verification code is:</p>
-        <h2>${otp}</h2>
-        <p>This OTP will expire in 10 minutes.</p>
-      </body>
-    </html>
-  `,
-  );
+  const emailContent = resendOtpEmail(otp);
+
+  const response = await sendEmail(user.email, "Resend Verification Code - EveryWear", emailContent);
   console.log(response);
 
   user.verificationOtp = otp;
@@ -323,5 +304,5 @@ export {
   editProfileImage,
   deleteProfileImage,
   refreshAccessToken,
-  resendOTP
+  resendOTP,
 };

@@ -11,6 +11,13 @@ import buildSortOptions from "../utils/orders/build-sort-options.js";
 import buildFilterOptions from "../utils/orders/build-order-filters.js";
 import Order from "../models/orders.model.js";
 
+import sendEmail from "../services/resendEmail.js";
+import orderPlacedEmail from "../email-templates/orders/order-placed-email.js";
+import orderCancelledEmail from "../email-templates/orders/order-cancelled-email.js";
+import orderConfirmedEmail from "../email-templates/orders/order-confirmed-email.js";
+import orderShippedEmail from "../email-templates/orders/order-shipped-email.js";
+import orderDeliveredEmail from "../email-templates/orders/order-delivered-email.js";
+
 // Create a new order from the authenticated user's cart and process inventory updates.
 
 const createOrder = AsyncHandler(async (req, res) => {
@@ -141,6 +148,8 @@ const createOrder = AsyncHandler(async (req, res) => {
     await Cart.findOneAndUpdate({ user: userId }, { $set: { items: [] } }, { session });
 
     await session.commitTransaction();
+    const emailContent = orderPlacedEmail(order, fullName);
+    await sendEmail(email, "Your Order Has Been Placed - EveryWear", emailContent);
 
     return res
       .status(200)
@@ -170,7 +179,12 @@ const getUserOrders = AsyncHandler(async (req, res) => {
 const cancelOrder = AsyncHandler(async (req, res) => {
   const userId = req.user.id;
   const { orderId } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(orderId)) {
+    throw new apiError(400, "Invalid order ID");
+  }
   const { reason, description } = req.body;
+  const user = await User.findById(userId);
+  console.log("user", user);
   const session = await mongoose.startSession();
   try {
     session.startTransaction();
@@ -224,6 +238,9 @@ const cancelOrder = AsyncHandler(async (req, res) => {
     order.cancellationInfo.cancellationDate = new Date();
     order.cancellationInfo.cancelledBy = userId;
     await order.save({ session });
+
+    const emailContent = orderCancelledEmail(order);
+    await sendEmail(user.email, "Order Cancelled", emailContent);
 
     await session.commitTransaction();
     console.log("transaction committed ");
@@ -284,11 +301,36 @@ const updateOrderStatus = AsyncHandler(async (req, res) => {
   if (!order) {
     throw new apiError(404, "Order not found");
   }
+  const user = await User.findById(order.user);
+  if (!user) {
+    throw new apiError(404, "User not found");
+  }
+
+  if (status === "processing" && order.status !== "confirmed") {
+    throw new apiError(400, "Order cannot be marked as processing unless it is confirmed");
+  }
+
+  if (status === "packed" && order.status !== "processing") {
+    throw new apiError(400, "Order cannot be marked as packed unless it is processing");
+  }
+
+  if (status === "shipped" && order.status !== "confirmed") {
+    throw new apiError(400, "Order cannot be marked as shipped unless it is confirmed");
+  }
+
+  if (status === "confirmed" && order.status === "confirmed") {
+    throw new apiError(400, "Order is already confirmed");
+  }
+
   if (status === "delivered" && order.status !== "outForDelivery") {
     throw new apiError(400, "Order cannot be marked as delivered unless it is out for delivery");
   }
 
-  if (status === "delivered" && order.paymentInfo.paymentMethod === "cash_on_delivery") {
+  if (
+    status === "delivered" &&
+    order.status === "outForDelivery" &&
+    order.paymentInfo.paymentMethod === "cash_on_delivery"
+  ) {
     if (order.paymentInfo.paymentStatus !== "completed") {
       order.paymentInfo.paymentStatus = "completed";
       order.paymentInfo.paymentDate = new Date();
@@ -296,6 +338,27 @@ const updateOrderStatus = AsyncHandler(async (req, res) => {
   }
   order.status = status;
   await order.save();
+
+  switch (status) {
+    case "confirmed": {
+      const emailContent = orderConfirmedEmail(order, user.name);
+      await sendEmail(user.email, "Order Confirmed", emailContent);
+      break;
+    }
+    case "shipped": {
+      const emailContent = orderShippedEmail(order, user.name);
+      await sendEmail(user.email, "Order Shipped", emailContent);
+      break;
+    }
+    case "delivered": {
+      const emailContent = orderDeliveredEmail(order, user.name);
+      await sendEmail(user.email, "Order Delivered", emailContent);
+      break;
+    }
+    default:
+      break;
+  }
+
   return res.status(200).json(new apiResponse(200, order, "Order status updated successfully"));
 });
 

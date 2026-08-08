@@ -122,4 +122,42 @@ const orderQueryValidator = [
   query("endDate").optional().isISO8601().withMessage("Invalid end date format"),
 ];
 
-export { createOrderValidator, orderQueryValidator };
+const orderStatusValidator = [
+  body("status")
+    .notEmpty()
+    .withMessage("Status is required")
+    .isIn([
+      "pending",
+      "confirmed",
+      "processing",
+      "packed",
+      "shipped",
+      "outForDelivery",
+      "delivered",
+      "cancelled",
+      "returned",
+      "refunded",
+    ])
+    .withMessage("Invalid order status"),
+];
+
+const cancelOrderValidator = [
+  body("reason")
+    .trim()
+    .notEmpty()
+    .withMessage("Cancellation reason is required.")
+    .isIn([
+      "Changed my mind",
+      "Ordered by mistake",
+      "Want to change the product or variant",
+      "Found a better price elsewhere",
+      "Delivery is taking too long",
+      "No longer needed",
+      "Other",
+    ])
+    .withMessage("Invalid cancellation reason."),
+
+  body("description").optional().trim().isLength({ max: 500 }).withMessage("Description cannot exceed 500 characters."),
+];
+
+export { createOrderValidator, orderQueryValidator, orderStatusValidator, cancelOrderValidator };

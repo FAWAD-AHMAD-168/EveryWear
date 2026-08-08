@@ -3,7 +3,7 @@ import express from "express";
 import isAuthenticated from "../middlewares/auth/isAuthenticated.js";
 import isAdmin from "../middlewares/auth/isAdmin.js";
 import validate from "../middlewares/validate.js";
-import { createOrderValidator, orderQueryValidator } from "../validators/orders.validator.js";
+import { createOrderValidator, orderQueryValidator , orderStatusValidator } from "../validators/orders.validator.js";
 
 import {
   createOrder,
@@ -21,7 +21,7 @@ const router = express.Router();
 
 router.post("/create-order", createOrderValidator, validate, isAuthenticated, createOrder);
 router.patch("/cancel-order/:orderId", isAuthenticated, cancelOrder);
-router.patch("/update-order-status/:orderId", isAuthenticated, isAdmin, updateOrderStatus);
+router.patch("/update-order-status/:orderId",orderStatusValidator , isAuthenticated, isAdmin, updateOrderStatus);
 router.get("/get-user-orders", isAuthenticated, getUserOrders);
 router.get("/get-order-details/:orderId", isAuthenticated, isAdmin, getOrderDetailsForAdmin);
 router.get("/get-order-details-for-user/:orderId", isAuthenticated, getOrderDetailsForUser);
