@@ -37,7 +37,7 @@ const createReview = AsyncHandler(async (req, res) => {
   }
   let uploadedImage = null;
   if (reviewImage) {
-    uploadedImage = await uploadOnCloudinary(reviewImage.path, "Reviews");
+    uploadedImage = await uploadOnCloudinary(reviewImage.path, "EveryWear/Reviews");
     if (!uploadedImage) {
       throw new ApiError(500, "Failed to upload review image.");
     }
@@ -269,7 +269,7 @@ const updateReview = AsyncHandler(async (req, res) => {
     if (review.reviewImage && review.reviewImage.public_id) {
       await deleteFromCloudinary(review.reviewImage.public_id);
     }
-    const uploadedImage = await uploadOnCloudinary(newReviewImage.path, "Reviews");
+    const uploadedImage = await uploadOnCloudinary(newReviewImage.path, "EveryWear/Reviews");
     if (!uploadedImage) {
       throw new ApiError(500, "Failed to upload review image.");
     }

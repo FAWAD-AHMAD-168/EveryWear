@@ -16,8 +16,8 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["user", "admin"],
-      default: "user",
+      enum: ["customer", "admin"],
+      default: "customer",
     },
     isVerified: {
       type: Boolean,
@@ -44,9 +44,15 @@ const userSchema = new mongoose.Schema(
       default: null,
     },
 
-    profilePicture: {
-      type: String,
-      default: "",
+    profileImage: {
+      imageUrl: {
+        type: String,
+        default: null,
+      },
+      publicId: {
+        type: String,
+        default: null,
+      },
     },
 
     refreshToken: {
@@ -54,6 +60,7 @@ const userSchema = new mongoose.Schema(
       default: null,
     },
   },
+
   {
     timestamps: true,
   },

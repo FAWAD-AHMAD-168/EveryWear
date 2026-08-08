@@ -62,8 +62,13 @@ const loginValidator = [
     ),
 ];
 
+const resendOtpValidator = [
+  body("email")
+    .trim()
+    .notEmpty()
+    .withMessage("Email is required")
+    .isEmail()
+    .withMessage("Valid email is required"),
+];
 
-
-
-
-export { registerValidator, verifyOtpValidator, loginValidator };
+export { registerValidator, verifyOtpValidator, loginValidator , resendOtpValidator };

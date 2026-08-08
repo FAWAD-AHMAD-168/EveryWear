@@ -5,7 +5,7 @@ import mongoose from "mongoose";
 import apiError from "../utils/api-error.js";
 import asyncHandler from "../utils/async-handler.js";
 import apiResponse from "../utils/api-response.js";
-import {uploadOnCloudinary,deleteFromCloudinary} from "../services/cloudinary.js";
+import { uploadOnCloudinary, deleteFromCloudinary } from "../services/cloudinary.js";
 import capitalizeName from "../utils/capitalizeName.js";
 
 const addProductToCollection = asyncHandler(async (req, res, next) => {
@@ -19,11 +19,11 @@ const addProductToCollection = asyncHandler(async (req, res, next) => {
     return next(new apiError(404, "Collection not found"));
   }
 
-  const { name,description,price,sizes,discount,isFeatured,isLimitedEdition } = req.body;
+  const { name, description, price, sizes, discount, isFeatured, isLimitedEdition } = req.body;
   const images = req.files;
-if(!images || images.length === 0) {
-  throw new apiError(400, "At least one image is required");
-}
+  if (!images || images.length === 0) {
+    throw new apiError(400, "At least one image is required");
+  }
 
   const formattedName = capitalizeName(name);
   const slug = formattedName.toLowerCase().replace(/\s+/g, "-");
@@ -35,15 +35,15 @@ if(!images || images.length === 0) {
   } catch (error) {
     throw new apiError(400, "Invalid sizes format");
   }
-if(Array.isArray(parsedSizes)) {
-  for (const sizeObj of parsedSizes) {
-    if (!sizeObj.size || !sizeObj.stock) {
-      throw new apiError(400, "Each size must have size name and stock");
+  if (Array.isArray(parsedSizes)) {
+    for (const sizeObj of parsedSizes) {
+      if (!sizeObj.size || !sizeObj.stock) {
+        throw new apiError(400, "Each size must have size name and stock");
+      }
     }
+  } else {
+    throw new apiError(400, "Sizes must be an array of objects");
   }
-} else {
-  throw new apiError(400, "Sizes must be an array of objects");
-}
 
   const existingProduct = await Products.findOne({
     name: formattedName,
@@ -56,18 +56,15 @@ if(Array.isArray(parsedSizes)) {
   const Price = parseFloat(price);
   const Discount = discount ? parseFloat(discount) : 0;
 
-
-  const discountedPrice = discount
-    ? Math.floor(Price - (Price * Discount) / 100)
-    : undefined;
+  const discountedPrice = discount ? Math.floor(Price - (Price * Discount) / 100) : undefined;
 
   const uploadedImages = [];
-  
+
   for (const image of images) {
-    const result = await uploadOnCloudinary(image.path);
+    const result = await uploadOnCloudinary(image.path, "EveryWear/Products");
     uploadedImages.push({
       imageUrl: result.secure_url,
-      publicId: result.public_id
+      publicId: result.public_id,
     });
   }
 
@@ -85,9 +82,7 @@ if(Array.isArray(parsedSizes)) {
     isLimitedEdition,
   });
 
-  return res
-    .status(201)
-    .json(new apiResponse(201, product, "Product added successfully"));
+  return res.status(201).json(new apiResponse(201, product, "Product added successfully"));
 });
 
 const addProductToCategoryOfCollection = asyncHandler(async (req, res, next) => {
@@ -102,11 +97,11 @@ const addProductToCategoryOfCollection = asyncHandler(async (req, res, next) => 
   }
   const collectionId = ifCategoryExists.collection;
 
-  const { name,description,price,sizes,discount,isFeatured,isLimitedEdition } = req.body;
+  const { name, description, price, sizes, discount, isFeatured, isLimitedEdition } = req.body;
   const images = req.files;
-if(!images || images.length === 0) {
-  throw new apiError(400, "At least one image is required");
-}
+  if (!images || images.length === 0) {
+    throw new apiError(400, "At least one image is required");
+  }
 
   const formattedName = capitalizeName(name);
   const slug = formattedName.toLowerCase().replace(/\s+/g, "-");
@@ -118,15 +113,15 @@ if(!images || images.length === 0) {
   } catch (error) {
     throw new apiError(400, "Invalid sizes format");
   }
-if(Array.isArray(parsedSizes)) {
-  for (const sizeObj of parsedSizes) {
-    if (!sizeObj.size || !sizeObj.stock) {
-      throw new apiError(400, "Each size must have size name and stock");
+  if (Array.isArray(parsedSizes)) {
+    for (const sizeObj of parsedSizes) {
+      if (!sizeObj.size || !sizeObj.stock) {
+        throw new apiError(400, "Each size must have size name and stock");
+      }
     }
+  } else {
+    throw new apiError(400, "Sizes must be an array of objects");
   }
-} else {
-  throw new apiError(400, "Sizes must be an array of objects");
-}
 
   const existingProduct = await Products.findOne({
     name: formattedName,
@@ -139,17 +134,14 @@ if(Array.isArray(parsedSizes)) {
   const Price = parseFloat(price);
   const Discount = discount ? parseFloat(discount) : 0;
 
-
-  const discountedPrice = discount
-    ? Math.floor(Price - (Price * Discount) / 100)
-    : undefined;
+  const discountedPrice = discount ? Math.floor(Price - (Price * Discount) / 100) : undefined;
 
   const imageUrls = [];
   for (const image of images) {
-    const result = await uploadOnCloudinary(image.path);
+    const result = await uploadOnCloudinary(image.path, "EveryWear/Products");
     imageUrls.push({
       imageUrl: result.secure_url,
-      publicId: result.public_id
+      publicId: result.public_id,
     });
   }
 
@@ -168,12 +160,10 @@ if(Array.isArray(parsedSizes)) {
     isLimitedEdition,
   });
 
-  return res
-    .status(201)
-    .json(new apiResponse(201, product, "Product added successfully"));
+  return res.status(201).json(new apiResponse(201, product, "Product added successfully"));
 });
 
-//Edit a product 
+//Edit a product
 const editProduct = asyncHandler(async (req, res, next) => {
   const { productId } = req.params;
 
@@ -186,31 +176,19 @@ const editProduct = asyncHandler(async (req, res, next) => {
     throw new apiError(404, "Product not found");
   }
 
-  const {
-    name,
-    description,
-    price,
-    sizes,
-    discount,
-    isFeatured,
-    isLimitedEdition,
-  } = req.body;
+  const { name, description, price, sizes, discount, isFeatured, isLimitedEdition } = req.body;
 
-  
   if (name !== undefined) {
     const formattedName = capitalizeName(name);
     const slug = formattedName.toLowerCase().replace(/\s+/g, "-");
 
     const existingProduct = await Products.findOne({
       name: formattedName,
-      slug
+      slug,
     });
 
     if (existingProduct) {
-      throw new apiError(
-        400,
-        "Another product with this name already exists"
-      );
+      throw new apiError(400, "Another product with this name already exists");
     }
 
     product.name = formattedName;
@@ -227,8 +205,7 @@ const editProduct = asyncHandler(async (req, res, next) => {
     let parsedSizes;
 
     try {
-      parsedSizes =
-        typeof sizes === "string" ? JSON.parse(sizes) : sizes;
+      parsedSizes = typeof sizes === "string" ? JSON.parse(sizes) : sizes;
     } catch {
       throw new apiError(400, "Invalid sizes format");
     }
@@ -239,10 +216,7 @@ const editProduct = asyncHandler(async (req, res, next) => {
 
     for (const sizeObj of parsedSizes) {
       if (!sizeObj.size || sizeObj.stock === undefined) {
-        throw new apiError(
-          400,
-          "Each size must have size name and stock"
-        );
+        throw new apiError(400, "Each size must have size name and stock");
       }
     }
 
@@ -263,29 +237,22 @@ const editProduct = asyncHandler(async (req, res, next) => {
     product.discount = finalDiscount;
   }
 
-  //  DISCOUNTED PRICE 
+  //  DISCOUNTED PRICE
   if (price !== undefined || discount !== undefined) {
-    product.discountedPrice = finalDiscount
-      ? Math.floor(finalPrice - (finalPrice * finalDiscount) / 100)
-      : undefined;
+    product.discountedPrice = finalDiscount ? Math.floor(finalPrice - (finalPrice * finalDiscount) / 100) : undefined;
   }
 
- 
   if (isFeatured !== undefined) {
-    product.isFeatured =
-      isFeatured === true || isFeatured === "true";
+    product.isFeatured = isFeatured === true || isFeatured === "true";
   }
 
   if (isLimitedEdition !== undefined) {
-    product.isLimitedEdition =
-      isLimitedEdition === true || isLimitedEdition === "true";
+    product.isLimitedEdition = isLimitedEdition === true || isLimitedEdition === "true";
   }
 
   await product.save();
 
-  return res
-    .status(200)
-    .json(new apiResponse(200, product, "Product updated successfully"));
+  return res.status(200).json(new apiResponse(200, product, "Product updated successfully"));
 });
 
 //Delete  image  of a product
@@ -320,11 +287,8 @@ const DeleteProductImage = asyncHandler(async (req, res, next) => {
 
   await product.save();
 
-  return res
-    .status(200)
-    .json(new apiResponse(200, product, "Image deleted successfully"));
+  return res.status(200).json(new apiResponse(200, product, "Image deleted successfully"));
 });
-
 
 //Add new image to a product
 const AddProductImages = asyncHandler(async (req, res, next) => {
@@ -343,31 +307,21 @@ const AddProductImages = asyncHandler(async (req, res, next) => {
   }
 
   for (const image of images) {
-    const result = await uploadOnCloudinary(image.path);
+    const result = await uploadOnCloudinary(image.path, "EveryWear/Products");
     product.images.push({
       imageUrl: result.secure_url,
-      publicId: result.public_id
+      publicId: result.public_id,
     });
   }
 
   await product.save();
 
-  return res
-    .status(200)
-    .json(new apiResponse(200, product, "Image added successfully"));
+  return res.status(200).json(new apiResponse(200, product, "Image added successfully"));
 });
 
+//Delete A Product
 
-
-
-
-
-
-//Delete A Product 
-
-const deleteProduct = asyncHandler(async (req, res, next) => {  
-
-  
+const deleteProduct = asyncHandler(async (req, res, next) => {
   const { productId } = req.params;
   if (!mongoose.Types.ObjectId.isValid(productId)) {
     throw new apiError(400, "Invalid product ID");
@@ -380,71 +334,40 @@ const deleteProduct = asyncHandler(async (req, res, next) => {
 
   for (const image of product.images) {
     const result = await deleteFromCloudinary(image.publicId);
-    
+
     if (!result || result.result !== "ok") {
-      console.error(
-        `Failed to delete image with public ID ${image.publicId} from Cloudinary`
-      );
+      console.error(`Failed to delete image with public ID ${image.publicId} from Cloudinary`);
     }
   }
 
   const deletedProduct = await Products.findByIdAndDelete(productId);
 
-  return res
-    .status(200)
-    .json(new apiResponse(200, deletedProduct, "Product deleted successfully"));
-
-
-
-
-  
-
-
-  
-
-
-
-
-
+  return res.status(200).json(new apiResponse(200, deletedProduct, "Product deleted successfully"));
 });
-
 
 //Get All Products
 
 const getAllProducts = asyncHandler(async (req, res, next) => {
   const products = await Products.find();
-  return res
-    .status(200)
-    .json(new apiResponse(200, products, "Products retrieved successfully"));
+  return res.status(200).json(new apiResponse(200, products, "Products retrieved successfully"));
 });
 
-
-
-//get products by a category 
+//get products by a category
 
 const getProductsByCategory = asyncHandler(async (req, res, next) => {
   const { categoryId } = req.params;
   const products = await Products.find({ category: categoryId });
-  return res
-    .status(200)
-    .json(new apiResponse(200, products, "Products retrieved successfully"));
+  return res.status(200).json(new apiResponse(200, products, "Products retrieved successfully"));
 });
 
 // get products by a collection
 
 const getProductsByCollection = asyncHandler(async (req, res, next) => {
   const { collectionId } = req.params;
-  const products = await Products.find({ collection: collectionId }); 
+  const products = await Products.find({ collection: collectionId });
 
-  return res
-    .status(200)
-    .json(new apiResponse(200, products, "Products retrieved successfully"));
+  return res.status(200).json(new apiResponse(200, products, "Products retrieved successfully"));
 });
-
-
-
-
-
 
 export {
   addProductToCollection,

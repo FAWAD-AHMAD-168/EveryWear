@@ -2,10 +2,9 @@ import jwt from "jsonwebtoken";
 import User from "../../models/user.model.js";
 import apiError from "../../utils/api-error.js";
 
-const authMiddleware = async (req, res, next) => {
+const isAuthenticated = async (req, res, next) => {
   try {
-    const accessToken =
-      req.cookies.accessToken || req.headers.authorization?.split(" ")[1];
+    const accessToken = req.cookies.accessToken || req.headers.authorization?.split(" ")[1];
 
     if (!accessToken) {
       return next(new apiError(401, "Unauthorized!"));
@@ -23,4 +22,4 @@ const authMiddleware = async (req, res, next) => {
     return next(new apiError(401, "Unauthorized! Invalid token."));
   }
 };
-export default authMiddleware;
+export default isAuthenticated;
