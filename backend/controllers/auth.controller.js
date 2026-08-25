@@ -64,7 +64,7 @@ const verifyOtp = asyncHandler(async (req, res) => {
     throw new apiError(400, "Invalid OTP!");
   }
   if (Date.now() > user.verificationOtpExpiresAt) {
-    throw new apiError(400, "Verification code has expired!");
+    throw new apiError(400, "Verification OTP has expired!");
   }
 
   user.isVerified = true;
@@ -72,7 +72,7 @@ const verifyOtp = asyncHandler(async (req, res) => {
   user.verificationOtpExpiresAt = null;
   await user.save();
 
-  return res.status(200).json(new apiResponse(200, null, "Email verified successfully! You can now log in."));
+  return res.status(200).json(new apiResponse(200, null, "Account verified successfully! You can now log in."));
 });
 
 // Resend OTP
@@ -92,14 +92,14 @@ const resendOTP = asyncHandler(async (req, res) => {
 
   const emailContent = resendOtpEmail(otp);
 
-  const response = await sendEmail(user.email, "Resend Verification Code - EveryWear", emailContent);
+  const response = await sendEmail(user.email, "Resend Verification OTP - EveryWear", emailContent);
   console.log(response);
 
   user.verificationOtp = otp;
   user.verificationOtpExpiresAt = otpExpiresAt;
   await user.save();
 
-  return res.status(200).json(new apiResponse(200, null, "New verification code sent! Please check your email."));
+  return res.status(200).json(new apiResponse(200, null, "New verification OTP sent! Please check your email."));
 });
 
 //login
@@ -164,51 +164,56 @@ const logoutUser = asyncHandler(async (req, res) => {
 });
 
 //// Generate a new access token using a valid refresh token
-
 const refreshAccessToken = asyncHandler(async (req, res) => {
   const refreshToken = req.cookies.refreshToken;
+
   if (!refreshToken) {
-    throw new apiError(401, "Refresh token not found!");
+    throw new apiError(401, "Your session has expired. Please log in again.");
   }
 
   let decoded;
+
   try {
     decoded = jwt.verify(refreshToken, process.env.REFRESH_JWT_SECRET);
   } catch (err) {
     if (err.name === "TokenExpiredError") {
-      throw new apiError(401, "Refresh token has expired! Please log in again.");
-    } else if (err.name === "JsonWebTokenError") {
-      throw new apiError(401, "Invalid refresh token! Please log in again.");
-    } else {
-      throw new apiError(500, "An error occurred while verifying the refresh token.");
+      throw new apiError(401, "Your session has expired. Please log in again.");
     }
+
+    if (err.name === "JsonWebTokenError") {
+      throw new apiError(401, "Your session is no longer valid. Please log in again.");
+    }
+
+    throw new apiError(401, "Your session could not be verified. Please log in again.");
   }
 
   const user = await User.findById(decoded.id);
-  if (!user) {
-    throw new apiError(401, "Invalid refresh token!");
-  }
-  const isRefreshTokenValid = await bcrypt.compare(refreshToken, user.refreshToken);
 
-  if (!isRefreshTokenValid) {
+  if (!user) {
+    throw new apiError(401, "Your session is no longer valid. Please log in again.");
+  }
+
+  const isValidRefreshToken = await bcrypt.compare(refreshToken, user.refreshToken);
+
+  if (!isValidRefreshToken) {
     user.refreshToken = null;
     await user.save();
-    throw new apiError(401, "Invalid refresh token!");
+
+    throw new apiError(401, "Your session is no longer valid. Please log in again.");
   }
 
   const newAccessToken = generateAccessToken(user);
   const newRefreshToken = generateRefreshToken(user);
-  const hashedNewRefreshToken = await bcrypt.hash(newRefreshToken, 10);
-  user.refreshToken = hashedNewRefreshToken;
 
+  const hashedNewRefreshToken = await bcrypt.hash(newRefreshToken, 10);
+
+  user.refreshToken = hashedNewRefreshToken;
   await user.save();
 
   res.cookie("refreshToken", newRefreshToken, options);
-  return res
-    .status(200)
-    .json(new apiResponse(200, { accessToken: newAccessToken }, "Access token refreshed successfully!"));
-});
 
+  return res.status(200).json(new apiResponse(200, { accessToken: newAccessToken }, "Session refreshed successfully."));
+});
 //Profile Image Upload For the User
 const uploadProfileImage = asyncHandler(async (req, res) => {
   const userId = req.user._id;
