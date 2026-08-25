@@ -5,33 +5,25 @@ const registerValidator = [
     .trim()
     .notEmpty()
     .withMessage("Name is required")
+    .isLength({ min: 2, max: 50 })
+    .withMessage("Name must be between 2 and 50 characters")
     .escape(),
 
-  body("email")
-    .trim()
-    .notEmpty()
-    .withMessage("Email is required")
-    .isEmail()
-    .withMessage("Valid email is required"),
+  body("email").trim().notEmpty().withMessage("Email is required").isEmail().withMessage("Valid email is required"),
 
   body("password")
     .notEmpty()
     .withMessage("Password is required")
     .isLength({ min: 8 })
     .withMessage("Password must be at least 8 characters long")
-    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/)
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/)
     .withMessage(
-      "Password must include at least one uppercase letter, one lowercase letter, one number, and one special character"
+      "Password must include at least one uppercase letter, one lowercase letter, one number, and one special character",
     ),
 ];
 
 const verifyOtpValidator = [
-  body("email")
-    .trim()
-    .notEmpty()
-    .withMessage("Email is required")
-    .isEmail()
-    .withMessage("Valid email is required"),  
+  body("email").trim().notEmpty().withMessage("Email is required").isEmail().withMessage("Valid email is required"),
 
   body("otp")
     .trim()
@@ -44,31 +36,13 @@ const verifyOtpValidator = [
 ];
 
 const loginValidator = [
-  body("email")
-    .trim()
-    .notEmpty()
-    .withMessage("Email is required")
-    .isEmail()
-    .withMessage("Valid email is required"),
+  body("email").trim().notEmpty().withMessage("Email is required").isEmail().withMessage("Valid email is required"),
 
-  body("password")
-    .notEmpty()
-    .withMessage("Password is required")
-    .isLength({ min: 8 })
-    .withMessage("Password must be at least 8 characters long")
-    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/)
-    .withMessage(
-      "Password must include at least one uppercase letter, one lowercase letter, one number, and one special character"
-    ),
+  body("password").notEmpty().withMessage("Password is required"),
 ];
 
 const resendOtpValidator = [
-  body("email")
-    .trim()
-    .notEmpty()
-    .withMessage("Email is required")
-    .isEmail()
-    .withMessage("Valid email is required"),
+  body("email").trim().notEmpty().withMessage("Email is required").isEmail().withMessage("Valid email is required"),
 ];
 
-export { registerValidator, verifyOtpValidator, loginValidator , resendOtpValidator };
+export { registerValidator, verifyOtpValidator, loginValidator, resendOtpValidator };

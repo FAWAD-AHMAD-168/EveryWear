@@ -3,7 +3,7 @@ import rateLimit from "express-rate-limit";
 // Login rate limiter
 const loginRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  limit: 5,
+  limit: 15,
   standardHeaders: "draft-8",
   legacyHeaders: false,
   message: {
@@ -15,7 +15,7 @@ const loginRateLimit = rateLimit({
 // Registration rate limiter
 const registerRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  limit: 5,
+  limit: 15,
   standardHeaders: "draft-8",
   legacyHeaders: false,
   message: {
@@ -27,7 +27,7 @@ const registerRateLimit = rateLimit({
 // OTP verification rate limiter
 const verifyOtpRateLimit = rateLimit({
   windowMs: 10 * 60 * 1000, // 10 minutes
-  limit: 5,
+  limit: 15,
   standardHeaders: "draft-8",
   legacyHeaders: false,
   message: {
@@ -39,7 +39,7 @@ const verifyOtpRateLimit = rateLimit({
 // Resend OTP rate limiter
 const resendOtpRateLimit = rateLimit({
   windowMs: 10 * 60 * 1000, // 10 minutes
-  limit: 3,
+  limit: 13,
   standardHeaders: "draft-8",
   legacyHeaders: false,
   message: {

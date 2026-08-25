@@ -45,7 +45,7 @@ const registerUser = asyncHandler(async (req, res) => {
         email: user.email,
         name: user.name,
       },
-      "User registered successfully! Please check your email for the verification code.",
+      "Account created successfully!",
     ),
   );
 });
