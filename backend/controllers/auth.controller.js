@@ -141,7 +141,7 @@ const loginUser = asyncHandler(async (req, res) => {
       {
         accessToken,
 
-        user: { id: user._id, email: user.email, name: user.name },
+        user: { id: user._id, email: user.email, name: user.name, role: user.role },
       },
       "Login successful!",
     ),
