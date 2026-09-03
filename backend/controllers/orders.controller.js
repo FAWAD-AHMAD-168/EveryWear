@@ -379,7 +379,7 @@ const getRecentOrdersForDashboard = AsyncHandler(async (req, res) => {
 // Generate order analytics including revenue, monthly sales, and order status statistics.
 
 const getOrderStatistics = AsyncHandler(async (req, res) => {
-  const [totalOrders, totalRevenue, monthlyRevenue, totalOrderStatsByStatus] = await Promise.all([
+  const [totalOrders, totalRevenue, monthlyRevenue,monthlyOrders ,totalOrderStatsByStatus] = await Promise.all([
     Order.countDocuments(),
     Order.aggregate([
       {
@@ -419,6 +419,26 @@ const getOrderStatistics = AsyncHandler(async (req, res) => {
         },
       },
     ]),
+     Order.aggregate([
+     
+      {
+        $group: {
+          _id: {
+            month: { $month: "$createdAt" },
+            year: { $year: "$createdAt" },
+          },
+          orders: { $sum: 1 },
+        },
+      },
+
+      {
+        $sort: {
+          "_id.year": 1,
+          "_id.month": 1,
+        },
+      },
+    ]),
+
 
     Order.aggregate([
       {
@@ -437,6 +457,7 @@ const getOrderStatistics = AsyncHandler(async (req, res) => {
         totalOrders,
         totalRevenue,
         monthlyRevenue,
+        monthlyOrders,
         totalOrderStatsByStatus,
       },
       "Order statistics fetched successfully",
